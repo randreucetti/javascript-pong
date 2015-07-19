@@ -5,11 +5,11 @@
     Javascript Pong
   </title>
   <style>
-      body {
+    body {
       font-family: Helvetica, sans-serif;
     }
 
-    #tetris {
+    #pong {
       margin: 1em auto;
       padding: 1em;
       border: 4px solid black;
@@ -25,9 +25,9 @@
     #canvas {
       display: inline-block;
       vertical-align: top;
-      background: url(texture.jpg);
       box-shadow: 10px 10px 10px #999;
       border: 2px solid #333;
+      background-color: #000000;
     }
 
     #menu {
@@ -44,12 +44,6 @@
     #menu p a {
       text-decoration: none;
       color: black;
-    }
-
-    #upcoming {
-      display: block;
-      margin: 0 auto;
-      background-color: #E0E0E0;
     }
 
     #score {
@@ -71,17 +65,13 @@
     }
 
     @media screen and (min-width: 0px) and (min-height: 0px) {
-      #tetris {
+      #pong {
         font-size: 0.75em;
         width: 250px;
       }
       #menu {
         width: 100px;
         height: 200px;
-      }
-      #upcoming {
-        width: 50px;
-        height: 50px;
       }
       #canvas {
         width: 100px;
@@ -91,17 +81,13 @@
     /* 10px chunks */
 
     @media screen and (min-width: 400px) and (min-height: 400px) {
-      #tetris {
+      #pong {
         font-size: 1.00em;
         width: 350px;
       }
       #menu {
         width: 150px;
         height: 300px;
-      }
-      #upcoming {
-        width: 75px;
-        height: 75px;
       }
       #canvas {
         width: 150px;
@@ -111,17 +97,13 @@
     /* 15px chunks */
 
     @media screen and (min-width: 500px) and (min-height: 500px) {
-      #tetris {
+      #pong {
         font-size: 1.25em;
         width: 450px;
       }
       #menu {
         width: 200px;
         height: 400px;
-      }
-      #upcoming {
-        width: 100px;
-        height: 100px;
       }
       #canvas {
         width: 200px;
@@ -131,17 +113,13 @@
     /* 20px chunks */
 
     @media screen and (min-width: 600px) and (min-height: 600px) {
-      #tetris {
+      #pong {
         font-size: 1.50em;
         width: 550px;
       }
       #menu {
         width: 250px;
         height: 500px;
-      }
-      #upcoming {
-        width: 125px;
-        height: 125px;
       }
       #canvas {
         width: 250px;
@@ -151,17 +129,13 @@
     /* 25px chunks */
 
     @media screen and (min-width: 700px) and (min-height: 700px) {
-      #tetris {
+      #pong {
         font-size: 1.75em;
         width: 650px;
       }
       #menu {
         width: 300px;
         height: 600px;
-      }
-      #upcoming {
-        width: 150px;
-        height: 150px;
       }
       #canvas {
         width: 300px;
@@ -171,17 +145,13 @@
     /* 30px chunks */
 
     @media screen and (min-width: 800px) and (min-height: 800px) {
-      #tetris {
+      #pong {
         font-size: 2.00em;
         width: 750px;
       }
       #menu {
         width: 350px;
         height: 700px;
-      }
-      #upcoming {
-        width: 175px;
-        height: 175px;
       }
       #canvas {
         width: 350px;
@@ -191,11 +161,20 @@
     /* 35px chunks */
 
     @media screen and (min-width: 900px) and (min-height: 900px) {
-      #tetris {
+      #pong {
         font-size: 2.25em;
         width: 850px;
       }
-      #menu
+      #menu {
+        width: 400px;
+        height: 800px;
+      }
+      #canvas {
+        width: 400px;
+        height: 800px;
+      }
+    }
+    /* 40px chunks */
   </style>
 </head>
 <div id="pong">
@@ -207,13 +186,103 @@
     <p>score
       <span id="score">00000</span>
     </p>
-    <p>rows
-      <span id="rows">0</span>
-    </p>
   </div>
   <canvas id="canvas">
     Sorry, this example cannot be run because your browser does not support the &lt;canvas&gt; element
   </canvas>
 </div>
+
+<script>
+  //-------------------------------------------------------------------------
+  // base helper methods
+  //-------------------------------------------------------------------------
+
+  function get(id) {
+    return document.getElementById(id);
+  }
+
+  function hide(id) {
+    get(id).style.visibility = 'hidden';
+  }
+
+  function show(id) {
+    get(id).style.visibility = null;
+  }
+
+  function html(id, html) {
+    get(id).innerHTML = html;
+  }
+
+  function timestamp() {
+    return new Date().getTime();
+  }
+
+  function random(min, max) {
+    return (min + (Math.random() * (max - min)));
+  }
+
+  function randomChoice(choices) {
+    return choices[Math.round(random(0, choices.length - 1))];
+  }
+  if (!window.requestAnimationFrame) { // http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+    window.requestAnimationFrame = window.webkitRequestAnimationFrame ||
+      window.mozRequestAnimationFrame ||
+      window.oRequestAnimationFrame ||
+      window.msRequestAnimationFrame ||
+      function(callback, element) {
+        window.setTimeout(callback, 1000 / 60);
+      }
+  }
+  //-------------------------------------------------------------------------
+  // game constants
+  //-------------------------------------------------------------------------
+  var KEY = {
+      ESC: 27,
+      SPACE: 32,
+      LEFT: 37,
+      RIGHT: 39,
+    },
+    DIR = {
+      UP: 0,
+      RIGHT: 1,
+      DOWN: 2,
+      LEFT: 3,
+      MIN: 0,
+      MAX: 3
+    },
+    stats = new Stats(),
+    canvas = get('canvas'),
+    ctx = canvas.getContext('2d'),
+    uctx = ucanvas.getContext('2d'),
+    speed = {
+      start: 0.6,
+      decrement: 0.005,
+      min: 0.1
+    }, // how long before piece drops by 1 row (seconds)
+    nx = 10, // width of pong court (in blocks)
+    ny = 20, // height of pong court (in blocks)
+
+    //-------------------------------------------------------------------------
+    // game variables (initialized during reset)
+    //-------------------------------------------------------------------------
+    var dx, dy, // pixel size of a single tetris block
+      blocks, // 2 dimensional array (nx*ny) representing tetris court - either empty block or occupied by a 'piece'
+      actions, // queue of user actions (inputs)
+      playing, // true|false - game is in progress
+      dt, // time since starting this game
+      current, // the current piece
+      next, // the next piece
+      score, // the current score
+      vscore, // the currently displayed score (it catches up to score in small chunks - like a spinning slot machine)
+      rows, // number of completed rows in the current game
+      step; // how long before current piece drops by 1 row
+
+      //-----------------------------------------------------------------------
+      //game pieces
+      //-----------------------------------------------------------------------
+      var player;
+      var computer;
+      var ball;
+</script>
 
 </html>
